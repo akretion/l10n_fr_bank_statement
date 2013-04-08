@@ -86,7 +86,7 @@ class CICFileParser(FileParser):
         In this generic parser, the commission is given for every line, so we store it
         for each one.
         """
-        amount = line[u"Débit"] or line[u"Crédit"] or 0.0
+        amount = -line[u"Débit"] or line[u"Crédit"] or 0.0
 
         res = {
             'name': line.get(u"Libellé", "/"),
