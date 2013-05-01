@@ -23,7 +23,7 @@
 from openerp.tools.translate import _
 import datetime
 from account_statement_base_import.parser.parser import BankStatementImportParser
-from cfonb.parser.statement import Statement
+from cfonb import StatementReader
 import tempfile
 
 
@@ -62,11 +62,18 @@ class CFONBFileParser(BankStatementImportParser):
         Implement a method in your parser to save the result of parsing self.filebuffer
         in self.result_row_list instance property.
         """
-        wb_file = tempfile.NamedTemporaryFile()
-        wb_file.write(self.filebuffer)
-        wb_file.seek(0)
-        statement = Statement()
-        statement.parse(wb_file)
+        context = kwargs['context']
+        if not context.get('statement_to_process'):
+            wb_file = tempfile.NamedTemporaryFile()
+            wb_file.write(self.filebuffer)
+            wb_file.seek(0)
+            reader = StatementReader()
+            statement_to_process = reader.parse(wb_file)
+            statement = statement_to_process.pop(0)
+            context['statement_to_process'] = statement_to_process
+        else:
+            statement = context['statement_to_process'].pop(0)
+
         self.result_row_list = statement.lines
         self.balance_start = statement.header.prev_amount
         self.balance_end = statement.footer.next_amount

@@ -33,6 +33,13 @@ class AccountStatementProfil(orm.Model):
         res.extend([('cfonb_parser', 'Parser for CFONB import statement')])
         return res
 
+    def statement_import(self, cr, uid, ids, profile_id, file_stream, ftype="csv", context=None):
+        result = super(AccountStatementProfil, self).statement_import(cr, uid,\
+                ids, profile_id, file_stream, ftype="csv", context=context)
+        while context.get('statement_to_process'):
+            result += super(AccountStatementProfil, self).statement_import(cr, uid, ids,\
+                    profile_id, file_stream, ftype="csv", context=context)
+        return result
 
 class account_bank_statement_line(orm.Model):
     _inherit = "account.bank.statement.line"
