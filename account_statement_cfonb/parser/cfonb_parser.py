@@ -112,7 +112,8 @@ class CFONBFileParser(BankStatementImportParser):
                 }
         """
         return {
-            'name': line.get('label'),
+            'name': line.get('label') + line.get('label_1', '')\
+                    + line.get('label_2', '') + line.get('label_3', ''),
             'date': line.get('value_date'),
             'amount': line.get('amount'),
             'ref': line.get('reference'),
