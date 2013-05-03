@@ -68,7 +68,14 @@ class CFONBFileParser(BankStatementImportParser):
             wb_file.write(self.filebuffer)
             wb_file.seek(0)
             reader = StatementReader()
-            statement_to_process = reader.parse(wb_file)
+            res = reader.parse(wb_file)
+
+            #TODO make acccount_escape configurable from the view
+            statement_to_process = []
+            account_escape = context.get('account_escape', [])
+            for stat in res:
+                if stat.lines and stat.account_nb not in account_escape:
+                    statement_to_process.append(stat)
             statement = statement_to_process.pop(0)
             context['statement_to_process'] = statement_to_process
         else:
