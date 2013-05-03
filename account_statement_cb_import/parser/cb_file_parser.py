@@ -92,15 +92,49 @@ class CBFileParser(FileParser):
                     selected_lines = line
         self.filebuffer = selected_lines
 
+    def _parse(self, *args, **kwargs):
+        context = kwargs['context']
+        self.statement_name = context.get('file_name').replace('rapprochement_', '').replace('.xls', '')
+        return super(CBFileParser, self)._parse(*args, **kwargs)
+
+
     def _post(self, *args, **kwargs):
         """
         Remove pending lines
         """
         good_row_list = []
+        total_received = 0
+        total_paid = 0
         for row in self.result_row_list:
             if not row[u'CARD_TYPE'] == "PAYPAL":
                 good_row_list.append(row)
+                if row['OPERATION_TYPE'] == 'CT':
+                   row['BRUT_AMOUNT'] = - float(row['BRUT_AMOUNT'])
+                   total_paid += row['BRUT_AMOUNT']
+                else:
+                    total_received += float(row['BRUT_AMOUNT'])
         self.result_row_list = good_row_list
+
+        self.result_row_list.append({
+            'TRANSACTION_ID': 'bank_transfer',
+            'ORDER_ID': _('Bank Transfer'),
+            'type': 'Bank Transfer',
+            'REMITTANCE_DATE': self.result_row_list[0]['REMITTANCE_DATE'],
+            'BRUT_AMOUNT': -total_received,
+            'CARD_TYPE': 'VIR',
+            'COMMISSION_AMOUNT': 0,
+            })
+
+        self.result_row_list.append({
+            'TRANSACTION_ID': 'bank_transfer',
+            'ORDER_ID': _('Bank Transfer'),
+            'type': 'Bank Transfer',
+            'REMITTANCE_DATE': self.result_row_list[0]['REMITTANCE_DATE'],
+            'BRUT_AMOUNT': -total_paid,
+            'CARD_TYPE': 'VIR',
+            'COMMISSION_AMOUNT': 0,
+            })
+
         return super(CBFileParser, self)._post(*args, **kwargs)
 
     def get_st_line_vals(self, line, *args, **kwargs):
@@ -130,6 +164,5 @@ class CBFileParser(FileParser):
             'amount': line.get(u"BRUT_AMOUNT", 0.0)/100,
             'ref': line.get(u"ORDER_ID", "/"),
             'commission_amount': line.get(u"COMMISSION_AMOUNT", 0.0)/100,
-
         }
         return res
