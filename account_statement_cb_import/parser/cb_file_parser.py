@@ -39,7 +39,7 @@ class cb_dialect(Dialect):
 register_dialect("cb_dialect", cb_dialect)
 
 def float4d(val):
-    return float(val or 0.0)/1000
+    return float(val or 0.0)/10000
 
 def float2d(val):
     return float(val or 0.0)/100
@@ -115,12 +115,13 @@ class CBFileParser(FileParser):
         total_received = 0
         total_paid = 0
         total = defaultdict(lambda : defaultdict(float))
+        #TODO use new system with statement transfers!
         for row in self.result_row_list:
             if not row[u'CARD_TYPE'] == "PAYPAL":
                 good_row_list.append(row)
                 if row['OPERATION_TYPE'] == 'CT':
                     row['NET_AMOUNT'] = - float(row['NET_AMOUNT'])
-                    total[row['REMITTANCE_TIME']]['total_paid'] += row['NET_AMOUNT']
+                    total[row['REMITTANCE_TIME']]['total_paid'] += row['NET_AMOUNT']/100.
                 else:
                     total[row['REMITTANCE_TIME']]['total_received'] += float(row['BRUT_AMOUNT'])
         self.result_row_list = good_row_list
