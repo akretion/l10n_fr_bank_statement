@@ -26,7 +26,7 @@ import datetime
 from account_statement_base_import.parser.file_parser import FileParser
 from csv import Dialect
 from _csv import QUOTE_MINIMAL, register_dialect
-
+from collections import defaultdict
 
 class cb_dialect(Dialect):
     """Describe the usual properties of Excel-generated CSV files."""
@@ -37,6 +37,13 @@ class cb_dialect(Dialect):
     lineterminator = '\r\n'
     quoting = QUOTE_MINIMAL
 register_dialect("cb_dialect", cb_dialect)
+
+def float4d(val):
+    return float(val or 0.0)/1000
+
+def float2d(val):
+    return float(val or 0.0)/100
+
 
 class CBFileParser(FileParser):
     """
@@ -54,8 +61,10 @@ class CBFileParser(FileParser):
                 'type': datetime.datetime,
                 'format': "%Y%m%d",
             },
-            u"BRUT_AMOUNT": float,
-            u"COMMISSION_AMOUNT": float,
+            u"BRUT_AMOUNT": float2d,
+            u"NET_AMOUNT": float4d,
+            u"COMMISSION_AMOUNT": float4d,
+            u"OPERATION_TYPE":unicode,
         }
         #TODO FIXME
         header = [
@@ -105,36 +114,30 @@ class CBFileParser(FileParser):
         good_row_list = []
         total_received = 0
         total_paid = 0
+        total = defaultdict(lambda : defaultdict(float))
         for row in self.result_row_list:
             if not row[u'CARD_TYPE'] == "PAYPAL":
                 good_row_list.append(row)
                 if row['OPERATION_TYPE'] == 'CT':
-                   row['BRUT_AMOUNT'] = - float(row['BRUT_AMOUNT'])
-                   total_paid += row['BRUT_AMOUNT']
+                    row['NET_AMOUNT'] = - float(row['NET_AMOUNT'])
+                    total[row['REMITTANCE_TIME']]['total_paid'] += row['NET_AMOUNT']
                 else:
-                    total_received += float(row['BRUT_AMOUNT'])
+                    total[row['REMITTANCE_TIME']]['total_received'] += float(row['BRUT_AMOUNT'])
         self.result_row_list = good_row_list
-
-        self.result_row_list.append({
-            'TRANSACTION_ID': 'bank_transfer',
-            'ORDER_ID': _('Bank Transfer'),
-            'type': 'Bank Transfer',
-            'REMITTANCE_DATE': self.result_row_list[0]['REMITTANCE_DATE'],
-            'BRUT_AMOUNT': -total_received,
-            'CARD_TYPE': 'VIR',
-            'COMMISSION_AMOUNT': 0,
-            })
-
-        self.result_row_list.append({
-            'TRANSACTION_ID': 'bank_transfer',
-            'ORDER_ID': _('Bank Transfer'),
-            'type': 'Bank Transfer',
-            'REMITTANCE_DATE': self.result_row_list[0]['REMITTANCE_DATE'],
-            'BRUT_AMOUNT': -total_paid,
-            'CARD_TYPE': 'VIR',
-            'COMMISSION_AMOUNT': 0,
-            })
-
+        for date in total:
+            for key, amount in total[date].iteritems():
+                if amount:
+                    self.result_row_list.append({
+                        'TRANSACTION_ID': 'bank_transfer',
+                        'ORDER_ID': _('Bank Transfer'),
+                        'type': 'Bank Transfer',
+                        'REMITTANCE_DATE': self.result_row_list[0]['REMITTANCE_DATE'],
+                        'BRUT_AMOUNT': - amount,
+                        'NET_AMOUNT':0,
+                        'CARD_TYPE': 'VIR',
+                        'COMMISSION_AMOUNT': 0,
+                        'OPERATION_TYPE': '',
+                        })
         return super(CBFileParser, self)._post(*args, **kwargs)
 
     def get_st_line_vals(self, line, *args, **kwargs):
@@ -157,12 +160,15 @@ class CBFileParser(FileParser):
         In this generic parser, the commission is given for every line, so we store it
         for each one.
         """
-
+        if line.get('OPERATION_TYPE') == 'CT':
+            amount = line["NET_AMOUNT"]
+        else:
+            amount = line["BRUT_AMOUNT"]
         res = {
             'name': line.get(u"TRANSACTION_ID", "/"),
             'date': line.get(u"REMITTANCE_DATE", datetime.datetime.now().date()),
-            'amount': line.get(u"BRUT_AMOUNT", 0.0)/100,
+            'amount': amount,
             'ref': line.get(u"ORDER_ID", "/"),
-            'commission_amount': line.get(u"COMMISSION_AMOUNT", 0.0)/100,
+            'commission_amount': line["COMMISSION_AMOUNT"],
         }
         return res
