@@ -43,7 +43,7 @@ def float_or_zero(val):
     return float(val.replace(',', '.')) if val else 0.0
 
 def format_date(val):
-    return datetime.datetime.strptime(val, "%d/%m/%Y %H:%M")
+    return datetime.datetime.strptime(val.split(' ')[0], "%d/%m/%Y")
 
 
 class SogenactifFileParser(FileParser):
@@ -68,6 +68,7 @@ class SogenactifFileParser(FileParser):
 
     def _custom_format(self, *args, **kwargs):
         self.filebuffer = self.filebuffer.decode('iso-8859-15').encode('utf-8')
+        self.filebuffer = self.filebuffer.replace('="', '').replace('"', '')
         return True
 
     def _post(self, *args, **kwargs):
