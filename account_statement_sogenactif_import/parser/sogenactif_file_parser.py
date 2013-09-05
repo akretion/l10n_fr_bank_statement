@@ -79,7 +79,7 @@ class SogenactifFileParser(FileParser):
         res = []
         for row in self.result_row_list:
             if row["Type de carte"] == self._card_type\
-                    and row["Etat de la transaction"] != "refusée":
+                    and row["Etat de la transaction"] != u"refusée":
                 res.append(row)
         self.result_row_list = res
         return True
