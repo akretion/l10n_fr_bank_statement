@@ -111,7 +111,7 @@ class SocieteGeneraleFileParser(FileParser):
                                       datetime.datetime.now().date()),
             'credit': amount > 0.0 and amount or 0.0,
             'debit': amount < 0.0 and -amount or 0.0,
-            'transaction_ref': line.get(u"TRANSACTION_ID", ""),
+            'transaction_ref': line.get(u"ORDER_ID", ""),
         }
 
     def _post(self, *args, **kwargs):

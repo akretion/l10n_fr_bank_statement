@@ -104,7 +104,7 @@ class SogenactifFileParser(FileParser):
                                       datetime.datetime.now().date()),
             'credit': amount > 0.0 and amount or 0.0,
             'debit': amount < 0.0 and amount or 0.0,
-            'ref': '\\'
+            'transaction_ref': ref,
         }
 
 class PaypalSogenactifFileParser(SogenactifFileParser):
