@@ -51,7 +51,7 @@ class SocieteGeneraleFileParser(FileParser):
             u"OPERATION_TYPE": unicode,
         }
         dialect = sg_dialect
-        super(SocieteGeneraleFileParser, self).__init__(journal, ftype=ftype,
+        super(SocieteGeneraleFileParser, self).__init__(journal, ftype='csv',
                 extra_fields=conversion_dict, dialect=dialect, **kwargs)
 
     @classmethod
@@ -82,7 +82,12 @@ class SocieteGeneraleFileParser(FileParser):
             if not row[u'CARD_TYPE'] == "PAYPAL":
                 good_row_list.append(row)
         self.result_row_list = good_row_list
-        return super(SocieteGeneraleFileParser, self)._post(*args, **kwargs)
+        res = super(SocieteGeneraleFileParser, self)._post(*args, **kwargs)
+        if self.result_row_list:
+            date = self.result_row_list[0]['REMITTANCE_DATE'] or ''
+            self.move_name = "CB-" + date.strftime('%y%m%d')
+            self.move_date = date
+        return res
 
     def get_move_line_vals(self, line, *args, **kwargs):
         """
@@ -113,14 +118,3 @@ class SocieteGeneraleFileParser(FileParser):
             'debit': amount < 0.0 and -amount or 0.0,
             'transaction_ref': line.get(u"ORDER_ID", ""),
         }
-
-    def _post(self, *args, **kwargs):
-        """
-        Compute the total transfer amount
-        """
-        res = super(SocieteGeneraleFileParser, self)._post(*args, **kwargs)
-        if self.result_row_list:
-            date = self.result_row_list[0]['REMITTANCE_DATE'] or ''
-            self.move_name = "CB-" + date.strftime('%y%m%d')
-            self.move_date = date
-        return res
