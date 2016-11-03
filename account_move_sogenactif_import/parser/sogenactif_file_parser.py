@@ -64,7 +64,7 @@ class SogenactifFileParser(FileParser):
                     and row["Etat de la transaction"] != u"refusée":
                 self._moves.append(row)  
         if self._moves:
-            self.move_date = self._moves[0]['Date de la transaction']
+            self.move_date = format_date(self._moves[0]['Date de la transaction'])
         return True
 
     def _parse(self, *args, **kwargs):
