@@ -61,7 +61,7 @@ class SogenactifFileParser(FileParser):
         self._moves = []
         for row in res:
             if row["Type de carte"] == self._card_type\
-                    and row["Etat de la transaction"] != u"refusée":
+                    and row["Etat de la transaction"] not in (u"refusée", u"Refusée", u"refusé", u"Refusé"):
                 self._moves.append(row)  
         if self._moves:
             self.move_date = format_date(self._moves[0]['Date de la transaction'])
